@@ -1,0 +1,22 @@
+                    ORDER STATUS
+                         ↓
+                  Select question
+                 /       |        \
+                /        |         \
+               ▼         ▼          ▼
+          Where is?   Shipped?   Not arrived
+               │         │          │
+               └─────────┼──────────┘
+                         ↓
+                   Enter order #
+                         ↓
+                    Order found?
+                    /          \
+                  NO            YES
+                  ↓              ↓
+              Retry/Support   Get order data
+                                  ↓
+                           Question-specific
+                              response
+                                  ↓
+                       [Start Over / Support]
