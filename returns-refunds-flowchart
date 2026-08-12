@@ -1,46 +1,24 @@
-# Returns & Refunds Conversation Flow
-
-## Entry
-
-Customer selects **Returns & Refunds**.
-
-## Supported Scenarios
-
-- How do I return an item?
-- Is my item eligible for return?
-- Where is my refund?
-
-## Rough Flow
-
-```text
-                    RETURNS & REFUNDS
-                           |
-                           v
-                  What do you need?
-                  /       |        \
-                 /        |         \
-                v         v          v
-           How do I    Is it       Where is
-           return?     eligible?   my refund?
-               |          |            |
-               +----------+------------+
-                          |
-                          v
-                    Enter order #
-                          |
-                     Valid order?
-                      /         \
-                    NO           YES
-                    |             |
-                Retry/Support   Retrieve data
-                                  |
-                       +----------+----------+
-                       |          |          |
-                       v          v          v
-                    Return    Eligibility   Refund
-                    process      check       status
-                       |          |           |
-                       +----------+-----------+
-                                  |
-                                  v
-                         Response / Escalation
+Where is my refund?
+        ↓
+   Enter order #
+        ↓
+    Valid order?
+    /         \
+  NO           YES
+  ↓             ↓
+Retry       Check return status
+              /         \
+       Not returned    Returned
+            │             │
+            ▼             ▼
+      Explain that    Check refund
+      refund hasn't      status
+      been initiated       │
+                    ┌──────┼─────────┐
+                    ▼      ▼         ▼
+                Not      In transit  Issued
+              available     │          │
+                    │       │          │
+                    ▼       ▼          ▼
+                 Explain  Explain    Refund
+                 status   status     details
