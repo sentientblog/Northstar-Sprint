@@ -1,21 +1,24 @@
-# NS-01: MVP Scope
+## Summary
 
-## Overview
-This document outlines the scope for the Northstar Sprint MVP (Minimum Viable Product).
+Defines the scope of the Northstar Support Deflection Chatbot MVP.
 
-## Objectives
-- Define core features and requirements
-- Establish priority and timeline
-- Identify dependencies and blockers
+## Included
 
-## Scope Items
-- [ ] Item 1
-- [ ] Item 2
-- [ ] Item 3
+- Order Status
+- Returns & Refunds
+- Fallback/escalation
+- Mock data
+- End-to-end demonstration
 
-## Timeline
-Start Date: [TBD]
-End Date: [TBD]
+## Excluded
 
-## Notes
-- Add relevant details and updates as the sprint progresses
+- Advanced AI/NLP
+- Real Northstar integrations
+- Production infrastructure
+- Stock Availability unless core functionality is stable
+
+## Definition of Done
+
+Two supported ticket categories and their success criteria are documented and agreed upon.
+
+Closes #<issue-number>
