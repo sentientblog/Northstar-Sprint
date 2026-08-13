@@ -1,52 +1,5 @@
 
-
 document.addEventListener('DOMContentLoaded', () => {
-
-    /* ==========================================================
-       MOCK DATA LAYER — placeholder for NS-06 / NS-07 / NS-08 / NS-09
-       Replace lookupOrder() / lookupReturn() with real backend calls.
-       ========================================================== */
-    const MOCK_ORDERS = {
-        NS1025: {
-            status: 'In Transit',
-            shipped: true,
-            eta: 'May 16, 2024',
-            lastUpdate: 'Departed from Johannesburg hub'
-        },
-        NS1099: {
-            status: 'Processing',
-            shipped: false,
-            eta: 'Not yet dispatched',
-            lastUpdate: 'Order confirmed, awaiting warehouse pickup'
-        }
-    };
-
-    const MOCK_RETURNS = {
-        NS1025: {
-            eligible: true,
-            returnWindowDays: 30,
-            refundStatus: 'Processing',
-            refundEta: '3\u20135 business days'
-        },
-        NS1099: {
-            eligible: false,
-            returnWindowDays: 30,
-            refundStatus: 'Not applicable',
-            refundEta: 'N/A'
-        }
-    };
-
-    function lookupOrder(orderNumber) {
-        return MOCK_ORDERS[orderNumber.trim().toUpperCase()] || null;
-    }
-
-    function lookupReturn(orderNumber) {
-        return MOCK_RETURNS[orderNumber.trim().toUpperCase()] || null;
-    }
-
-    /* ==========================================================
-       DOM refs
-       ========================================================== */
     const chatScroll = document.getElementById('chatScroll');
     const hero = document.getElementById('hero');
     const input = document.getElementById('msgInput');
@@ -54,13 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const composerInner = document.querySelector('.composer-inner');
     const backBtn = document.getElementById('backBtn');
 
-    // Tracks what the text input is currently being used for, if anything.
-    // null = input disabled (guided-options only, per charter).
     let pendingTextIntent = null;
 
-    /* ==========================================================
-       Rendering helpers
-       ========================================================== */
     function nowTime() {
         const d = new Date();
         let h = d.getHours();
@@ -86,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         row.innerHTML = `
       <div class="msg-col">
         <div class="bubble user"></div>
-        <div class="msg-meta">${nowTime()} <span class="check">\u2713\u2713</span></div>
+        <div class="msg-meta">${nowTime()} <span class="check">✓✓</span></div>
       </div>`;
         row.querySelector('.bubble').textContent = text;
         chatScroll.appendChild(row);
@@ -109,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.remove();
     }
 
-    function addBotTurn(bodyHtml, options) {
+    function addBotTurn(bodyHtml, options = []) {
         hideHero();
         showTyping();
 
@@ -120,15 +68,14 @@ document.addEventListener('DOMContentLoaded', () => {
             row.className = 'msg-row bot';
 
             const chipsId = 'chips-' + Math.random().toString(36).slice(2, 9);
-            const chipsHtml = options && options.length
+            const chipsHtml = options.length
                 ? `<div class="option-chips" id="${chipsId}">` +
                 options.map((opt, i) =>
                     `<button class="option-chip" data-idx="${i}">
                <span>${opt.label}</span>
-               <span class="arrow">\u203a</span>
+               <span class="arrow">›</span>
              </button>`
-                ).join('') +
-                `</div>`
+                ).join('') + `</div>`
                 : '';
 
             row.innerHTML = `
@@ -140,16 +87,15 @@ document.addEventListener('DOMContentLoaded', () => {
             chatScroll.appendChild(row);
             scrollToBottom();
 
-            if (options && options.length) {
+            if (options.length) {
                 const chipsEl = document.getElementById(chipsId);
                 chipsEl.querySelectorAll('.option-chip').forEach((btn) => {
                     btn.addEventListener('click', () => {
                         const idx = Number(btn.getAttribute('data-idx'));
                         const chosen = options[idx];
-                        // Disable the whole set so this state can't be re-answered.
                         chipsEl.querySelectorAll('.option-chip').forEach((b) => (b.disabled = true));
                         addUserBubble(chosen.label);
-                        setTimeout(() => chosen.onClick(), 300);
+                        setTimeout(() => handleOption(chosen), 300);
                     });
                 });
             }
@@ -172,165 +118,119 @@ document.addEventListener('DOMContentLoaded', () => {
         composerInner.classList.add('disabled');
     }
 
-    /* ==========================================================
-       Conversation flow — mirrors Team Charter \u00a72 and \u00a75 exactly
-       ========================================================== */
+    function getApiCandidates() {
+        const sameOriginUrl = `${window.location.origin}/api/chat`;
+        const fallbackUrl = 'http://127.0.0.1:5000/api/chat';
 
-    function goRoot() {
+        if (window.location.protocol === 'file:') {
+            return [fallbackUrl];
+        }
+
+        const candidates = [sameOriginUrl];
+        if (window.location.origin !== 'http://127.0.0.1:5000') {
+            candidates.push(fallbackUrl);
+        }
+
+        return [...new Set(candidates)];
+    }
+
+    async function postChat(action, payload = {}) {
+        const candidates = getApiCandidates();
+
+        let lastError = null;
+
+        for (const url of candidates) {
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, ...payload })
+                });
+
+                if (response.ok) {
+                    return await response.json();
+                }
+
+                lastError = new Error(`HTTP ${response.status} for ${url}`);
+            } catch (error) {
+                lastError = error;
+            }
+        }
+
+        console.error('Chat API error:', lastError);
         addBotTurn(
-            `Hello! \ud83d\udc4b<br>Welcome to Northstar Support.<br>I'm here to help you with your order, returns and refunds.<br><br><b>How can we help you?</b>`,
+            'I\'m having trouble connecting to the support service right now. Please try again in a moment, or contact support directly.',
             [
-                { label: 'Order Status', onClick: goOrderStatusRoot },
-                { label: 'Returns & Refunds', onClick: goReturnsRoot },
-                { label: 'Something else', onClick: goFallback }
+                { label: 'Try again', action: 'start' },
+                { label: 'Contact Support', action: 'contact_support' }
             ]
         );
+        return null;
+    }
+
+    function renderBotResponse(data) {
+        if (!data) return;
+        if (data.input_mode && data.input_mode.intent) {
+            setTextInputMode(data.input_mode.intent, data.input_mode.placeholder || 'Enter your order number');
+        } else {
+            clearTextInputMode();
+        }
+
+        addBotTurn(data.body_html || 'I’m not sure how to help with that yet.', data.options || []);
+    }
+
+    function handleOption(chosen) {
+        if (!chosen) return;
+        if (chosen.action === 'start') return goRoot();
+        if (chosen.action === 'order_status_root') return goOrderStatusRoot();
+        if (chosen.action === 'returns_root') return goReturnsRoot();
+        if (chosen.action === 'return_instructions') return goHowToReturn();
+        if (chosen.action === 'ask_order_number') return goAskOrderNumber(chosen.payload?.intent || 'track_order');
+        if (chosen.action === 'fallback') return goFallback();
+        if (chosen.action === 'contact_support') return goContactSupport();
+        return goFallback();
+    }
+
+    function goRoot() {
+        postChat('start').then(renderBotResponse);
     }
 
     function goOrderStatusRoot() {
-        addBotTurn(
-            `<b>What would you like to know?</b>`,
-            [
-                { label: 'Where is my order?', onClick: () => goAskOrderNumber('trackOrder') },
-                { label: 'Has my order shipped?', onClick: () => goAskOrderNumber('shippedCheck') },
-                { label: "My order hasn't arrived", onClick: () => goAskOrderNumber('notArrived') },
-                { label: 'Something else', onClick: goFallback }
-            ]
-        );
+        postChat('order_status_root').then(renderBotResponse);
     }
 
     function goReturnsRoot() {
-        addBotTurn(
-            `<b>What would you like to know?</b>`,
-            [
-                { label: 'How do I return an item?', onClick: goHowToReturn },
-                { label: 'Is my item eligible for return?', onClick: () => goAskOrderNumber('eligibility') },
-                { label: 'When will I receive my refund?', onClick: () => goAskOrderNumber('refundStatus') },
-                { label: "My refund hasn't arrived", onClick: () => goAskOrderNumber('refundNotArrived') },
-                { label: 'Something else', onClick: goFallback }
-            ]
-        );
+        postChat('returns_root').then(renderBotResponse);
     }
 
     function goHowToReturn() {
-        addBotTurn(
-            `To return an item:
-       <ul>
-         <li>\ud83d\udce6 <span>Repack the item in its original packaging, if possible</span></li>
-         <li>\ud83c\udff7\ufe0f <span>Attach the return label from your order confirmation email</span></li>
-         <li>\ud83d\ude9a <span>Drop it off at any Northstar collection point within 30 days</span></li>
-       </ul>
-       <br>Is there anything else I can help you with?`,
-            [
-                { label: 'Start Over', onClick: goRoot },
-                { label: 'Contact Support', onClick: goContactSupport }
-            ]
-        );
+        postChat('return_instructions').then(renderBotResponse);
     }
 
     function goAskOrderNumber(intent) {
-        addBotTurn(`Sure \u2014 could you share your order number so I can look that up?`, null);
-        setTextInputMode(intent, 'Enter your order number (e.g. NS1025)');
+        postChat('ask_order_number', { intent }).then(renderBotResponse);
     }
 
-    function handleOrderNumberSubmit(orderNumber) {
+    async function handleOrderNumberSubmit(orderNumber) {
         const intent = pendingTextIntent;
         clearTextInputMode();
         addUserBubble(orderNumber);
 
-        if (intent === 'eligibility' || intent === 'refundStatus' || intent === 'refundNotArrived') {
-            const record = lookupReturn(orderNumber);
-            if (!record) return goOrderNotFound(intent, orderNumber);
-            return goReturnsResult(intent, orderNumber, record);
-        }
-
-        const record = lookupOrder(orderNumber);
-        if (!record) return goOrderNotFound(intent, orderNumber);
-        return goOrderResult(intent, orderNumber, record);
-    }
-
-    function goOrderNotFound(intent, orderNumber) {
-        addBotTurn(
-            `I couldn't find an order matching <b>${escapeHtml(orderNumber)}</b>. Could you double-check the number, or would you like a hand from a person instead?`,
-            [
-                { label: 'Try again', onClick: () => goAskOrderNumber(intent) },
-                { label: 'Contact Support', onClick: goContactSupport }
-            ]
-        );
-    }
-
-    function goOrderResult(intent, orderNumber, record) {
-        let body = '';
-        if (intent === 'trackOrder') {
-            body = `Here's the latest update for order <b>${escapeHtml(orderNumber)}</b>:
-        <ul>
-          <li>\ud83d\ude9a <span><b>Status:</b> ${record.status}</span></li>
-          <li>\ud83d\udcc5 <span><b>Estimated Delivery:</b> ${record.eta}</span></li>
-          <li>\ud83d\udccd <span><b>Last Update:</b> ${record.lastUpdate}</span></li>
-        </ul>`;
-        } else if (intent === 'shippedCheck') {
-            body = record.shipped
-                ? `Yes \u2014 order <b>${escapeHtml(orderNumber)}</b> has shipped. ${record.lastUpdate}, with delivery estimated ${record.eta}.`
-                : `Not yet \u2014 order <b>${escapeHtml(orderNumber)}</b> is still being processed. Current status: ${record.status}.`;
-        } else if (intent === 'notArrived') {
-            body = `Sorry about that. Order <b>${escapeHtml(orderNumber)}</b> currently shows: <b>${record.status}</b>, last update: ${record.lastUpdate}. If the estimated delivery date (${record.eta}) has already passed, I'd recommend contacting support so we can look into it.`;
-        }
-
-        addBotTurn(body + `<br><br>Is there anything else I can help you with?`, [
-            { label: 'Start Over', onClick: goRoot },
-            { label: 'Contact Support', onClick: goContactSupport }
-        ]);
-    }
-
-    function goReturnsResult(intent, orderNumber, record) {
-        let body = '';
-        if (intent === 'eligibility') {
-            body = record.eligible
-                ? `Good news \u2014 order <b>${escapeHtml(orderNumber)}</b> is eligible for return within our ${record.returnWindowDays}-day window.`
-                : `Order <b>${escapeHtml(orderNumber)}</b> is outside our ${record.returnWindowDays}-day return window, so it isn't eligible for a standard return.`;
-        } else if (intent === 'refundStatus' || intent === 'refundNotArrived') {
-            body = `Refund status for order <b>${escapeHtml(orderNumber)}</b>: <b>${record.refundStatus}</b>. Estimated time to reach you: ${record.refundEta}.`
-                + (intent === 'refundNotArrived'
-                    ? ` If that window has already passed, I'd recommend contacting support so we can check with the payment provider.`
-                    : '');
-        }
-
-        addBotTurn(body + `<br><br>Is there anything else I can help you with?`, [
-            { label: 'Start Over', onClick: goRoot },
-            { label: 'Contact Support', onClick: goContactSupport }
-        ]);
+        if (!intent) return;
+        const data = await postChat('lookup_order', { intent, order_number: orderNumber });
+        if (data) renderBotResponse(data);
     }
 
     function goFallback() {
-        addBotTurn(
-            `I couldn't find an option that matches your issue.`,
-            [
-                { label: 'Contact Support', onClick: goContactSupport },
-                { label: 'Start Over', onClick: goRoot }
-            ]
-        );
+        postChat('fallback').then(renderBotResponse);
     }
 
     function goContactSupport() {
-        addBotTurn(
-            `No problem \u2014 I'll route this to a member of our support team. They typically respond within our business hours (Mon\u2013Fri 08:00\u201320:00, Sat\u2013Sun 09:00\u201317:00).`,
-            [
-                { label: 'Start Over', onClick: goRoot }
-            ]
-        );
+        postChat('contact_support').then(renderBotResponse);
     }
 
-    function escapeHtml(str) {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
-
-    /* ==========================================================
-       Composer — only active during an "enter order number" state
-       ========================================================== */
     function handleTextSubmit() {
-        if (!pendingTextIntent) return; // guided-options only otherwise
+        if (!pendingTextIntent) return;
         const val = input.value.trim();
         if (!val) return;
         handleOrderNumberSubmit(val);
@@ -341,10 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') handleTextSubmit();
     });
 
-    /* ==========================================================
-       Entry points that jump directly into the tree
-       (quick-help cards, sidebar nav, recent conversations)
-       ========================================================== */
     const FLOW_ENTRY_POINTS = {
         root: goRoot,
         orderStatusRoot: goOrderStatusRoot,
@@ -378,9 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     backBtn.addEventListener('click', () => window.history.back());
 
-    /* ==========================================================
-       Boot
-       ========================================================== */
     clearTextInputMode();
     goRoot();
 });
