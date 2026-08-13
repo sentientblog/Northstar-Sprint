@@ -25,6 +25,22 @@ def test_health_endpoint(client):
     assert data['status'] == 'ok'
 
 
+def test_root_route_returns_api_message(client):
+    response = client.get('/')
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['service'] == 'northstar-support-chatbot'
+    assert 'api/chat' in data['message']
+
+
+def test_chat_endpoint_accepts_get_for_local_testing(client):
+    response = client.get('/api/chat')
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['service'] == 'northstar-support-chatbot'
+    assert 'POST' in data['message']
+
+
 def test_start_action_returns_main_options(client):
     response = client.post('/api/chat', json={'action': 'start'})
     assert response.status_code == 200

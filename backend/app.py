@@ -243,8 +243,15 @@ def health():
     return jsonify({'status': 'ok', 'service': 'northstar-support-chatbot'})
 
 
-@app.route('/api/chat', methods=['POST'])
+@app.route('/api/chat', methods=['GET', 'POST'])
 def chat():
+    if request.method == 'GET':
+        return jsonify({
+            'service': 'northstar-support-chatbot',
+            'status': 'ok',
+            'message': 'This endpoint expects POST requests from the frontend chat client. Use /api/health for status checks.'
+        })
+
     payload = request.get_json(silent=True) or {}
     action = payload.get('action')
 
@@ -341,8 +348,12 @@ def chat():
 
 
 @app.route('/')
-def serve_index():
-    return send_from_directory(app.static_folder, 'index.html')
+def serve_root():
+    return jsonify({
+        'service': 'northstar-support-chatbot',
+        'status': 'ok',
+        'message': 'Northstar Support API is running. Use /api/health for status and /api/chat for chatbot requests.'
+    })
 
 
 if __name__ == '__main__':
