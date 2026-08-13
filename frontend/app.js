@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('sendBtn');
     const composerInner = document.querySelector('.composer-inner');
     const backBtn = document.getElementById('backBtn');
+    const API_BASE_URL = (window.NS_API_BASE_URL || 'http://127.0.0.1:5000').replace(/\/+$/, '');
 
     let pendingTextIntent = null;
 
@@ -119,17 +120,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getApiCandidates() {
-        const sameOriginUrl = `${window.location.origin}/api/chat`;
-        const fallbackUrl = 'http://127.0.0.1:5000/api/chat';
+        const candidates = [];
 
-        if (window.location.protocol === 'file:') {
-            return [fallbackUrl];
+        if (API_BASE_URL) {
+            candidates.push(`${API_BASE_URL}/api/chat`);
         }
 
-        const candidates = [sameOriginUrl];
-        if (window.location.origin !== 'http://127.0.0.1:5000') {
-            candidates.push(fallbackUrl);
+        const sameHostIsBackend = (
+            window.location.protocol !== 'file:' &&
+            (window.location.port === '5000' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')
+        );
+
+        if (sameHostIsBackend) {
+            candidates.push(`${window.location.origin}/api/chat`);
         }
+
+        candidates.push('http://localhost:5000/api/chat');
+        candidates.push('http://127.0.0.1:5000/api/chat');
 
         return [...new Set(candidates)];
     }
