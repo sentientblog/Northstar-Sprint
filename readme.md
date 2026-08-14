@@ -27,7 +27,7 @@ The detailed project documentation is available in the docs. It includes informa
 [Returns & Refunds Flow](docs/go-live-readiness.md)
 [Returns Refunds flowcharts](docs/order-status-flowchart.drawio)
 [Order status Rough Flow-chart](order-status-flow-rough-flowchart)
-[General Test Flow chart](docs/general-chatbot-flowchart.png)
+[General Test Flow chart](general-chatbot-flowchart.png)
 [Test Results](data/test-results.md) 
 [Retest Results](data/retest-results.md)
 ## Running the Application
