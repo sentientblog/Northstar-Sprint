@@ -22,12 +22,12 @@ The chatbot also provides appropriate fall-back options when a customer's issue 
 Stock Availability is a stretch feature and should only be considered after Order Status and Returns & Refunds are stable and working reliably.
 ## Project Documentation
 The detailed project documentation is available in the docs. It includes information about the MVP Scope, Order Status Flow, Returns & Refunds Flow, flowcharts, testing information, and known limitations. Go-Live Readiness – Provides information about the project's readiness, known issues, testing results, and handover requirements. 
-[MVP scope]( backend/docs/NS-01-mvp-scope)
-[The order status flow]( order-status-flow.md)
+[MVP scope](backend/docs/NS-01-mvp-scope)
+[The order status flow](order-status-flow.md)
 [Returns & Refunds Flow](docs/go-live-readiness.md)
-[Returns Refunds flowcharts]( order-status-flowchart.drawio)
-[Order status Rough Flow-chart]( order-status-flow-rough-flowchart)
-[Flow chart]( general-chatbot-flowchart.png)
+[Returns Refunds flowcharts](order-status-flowchart.drawio)
+[Order status Rough Flow-chart](order-status-flow-rough-flowchart)
+[Flow chart](general-chatbot-flowchart.png)
 [Test Results](data/test-results.md) 
 [Retest Results](data/retest-results.md)
 ## Running the Application
