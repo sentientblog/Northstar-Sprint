@@ -35,14 +35,14 @@ Refund states:
 ## Return Eligibility
 
 An item is eligible for return if it was purchased within the
-previous 7 days.
+previous  3 to 5 days.
 
 Eligibility should be calculated from `purchase_date`; it should
 not be stored as a static field.
 
 ## Testing
 
-`NS9999` can be used as a nonexistent order number to test the
+`non NS-1025` can be used as a nonexistent order number to test the
 five-attempt retry and escalation behaviour.
 
 This data is fictional and intended only for the MVP prototype.
