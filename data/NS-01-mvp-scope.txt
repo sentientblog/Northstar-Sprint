@@ -1,0 +1,24 @@
+## Summary
+
+Defines the scope of the Northstar Support Deflection Chatbot MVP.
+
+## Included
+
+- Order Status
+- Returns & Refunds
+- Fallback/escalation
+- Mock data
+- End-to-end demonstration
+
+## Excluded
+
+- Advanced AI/NLP
+- Real Northstar integrations
+- Production infrastructure
+- Stock Availability unless core functionality is stable
+
+## Definition of Done
+
+Two supported ticket categories and their success criteria are documented and agreed upon.
+
+Closes #<issue-number>
