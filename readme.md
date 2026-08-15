@@ -21,7 +21,7 @@ The chatbot also provides appropriate fall-back options when a customer's issue 
 ### Stretch Goal
 Stock Availability is a stretch feature and should only be considered after Order Status and Returns & Refunds are stable and working reliably.
 ## Project Documentation
-The detailed project documentation is available in the docs. It includes information about the MVP Scope, [View order status flowchart](order-satus-flowchart.drawio), [View return status flowchart](returns-refunds-flowchart), [View general chat function flowchart](general-chatbot-flowchart.png), testing information[View test results](test-results.md)[View retest results](retest-results.md), and known limitations. [Go-live readiness](go-live-readiness.md) – Provides information about the project's readiness, known issues, testing results, and handover requirements. 
+The detailed project documentation is available in the docs. It includes information about the MVP Scope, [View order status flowchart](order-satus-flowchart.drawio), [View return status flowchart](returns-refunds-flowchart), [View general chat function flowchart](general-chatbot-flowchart.png), testing information[View test results](data/test-results.md) [View retest results](retest-results.md), and known limitations. [Go-live readiness](go-live-readiness.md) – Provides information about the project's readiness, known issues, testing results, and handover requirements. 
 [MVP scope](backend/docs/NS-01-mvp-scope)
 [The order status flow](order-status-flow.md)
 [Returns & Refunds Flow](docs/go-live-readiness.md)
