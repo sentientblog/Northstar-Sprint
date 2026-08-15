@@ -1,0 +1,24 @@
+Where is my refund?
+        ↓
+   Enter order #
+        ↓
+    Valid order?
+    /         \
+  NO           YES
+  ↓             ↓
+Retry       Check return status
+              /         \
+       Not returned    Returned
+            │             │
+            ▼             ▼
+      Explain that    Check refund
+      refund hasn't      status
+      been initiated       │
+                    ┌──────┼─────────┐
+                    ▼      ▼         ▼
+                Not      In transit  Issued
+              available     │          │
+                    │       │          │
+                    ▼       ▼          ▼
+                 Explain  Explain    Refund
+                 status   status     details
