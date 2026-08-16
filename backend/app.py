@@ -1,7 +1,9 @@
 import html
+import json
 import os
 import re
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from flask import Flask, jsonify, request, send_from_directory, session
@@ -22,12 +24,12 @@ def format_date(days_from_today: int) -> str:
     return (date.today() + timedelta(days=days_from_today)).strftime('%b %d, %Y')
 
 
-MOCK_ORDERS = {
+FALLBACK_ORDERS = {
     'NS1025': {
-        'status': 'In Transit',
+        'status': 'Returned - In Transit',
         'shipped': True,
-        'eta': format_date(3),
-        'lastUpdate': f'Departed from Johannesburg hub on {format_date(-2)}'
+        'eta': f'Expected at warehouse on {format_date(3)}',
+        'lastUpdate': f'Return package departed from drop-off hub on {format_date(-2)}'
     },
     'NS1099': {
         'status': 'Processing',
@@ -43,11 +45,11 @@ MOCK_ORDERS = {
     }
 }
 
-MOCK_RETURNS = {
+FALLBACK_RETURNS = {
     'NS1025': {
         'eligible': True,
         'returnWindowDays': 30,
-        'refundStatus': 'Processing',
+        'refundStatus': 'Refund in transit',
         'refundEta': '3–5 business days'
     },
     'NS1099': {
@@ -67,6 +69,72 @@ MOCK_RETURNS = {
 
 def normalize_order_number(value: Any) -> str:
     return str(value or '').strip().upper()
+
+
+def humanize_status(value: Any) -> str:
+    return str(value or '').replace('_', ' ').strip().title()
+
+
+def data_path(filename: str) -> Path:
+    return Path(__file__).resolve().parents[1] / 'data' / filename
+
+
+def read_mock_file(filename: str) -> List[Dict[str, Any]]:
+    try:
+        with data_path(filename).open(encoding='utf-8') as file:
+            data = json.load(file)
+    except (OSError, json.JSONDecodeError):
+        return []
+    return data if isinstance(data, list) else []
+
+
+def date_from_record(record: Dict[str, Any], offset_key: str, fixed_key: str) -> str:
+    if offset_key in record:
+        return format_date(int(record[offset_key]))
+    return record.get(fixed_key, '')
+
+
+def load_mock_orders() -> Dict[str, Dict[str, Any]]:
+    records: Dict[str, Dict[str, Any]] = {}
+    for item in read_mock_file('orders.json'):
+        order_number = normalize_order_number(item.get('order_id') or item.get('orderNumber'))
+        if not order_number:
+            continue
+
+        status = humanize_status(item.get('status'))
+        eta = item.get('eta') or date_from_record(item, 'eta_days_from_today', 'estimated_delivery')
+        last_update = item.get('lastUpdate') or item.get('last_update')
+        last_update_date = date_from_record(item, 'last_update_days_from_today', 'last_update_date')
+        if last_update and last_update_date:
+            last_update = f'{last_update} on {last_update_date}'
+
+        records[order_number] = {
+            'status': status,
+            'shipped': bool(item.get('shipped')),
+            'eta': eta or 'Not yet available',
+            'lastUpdate': last_update or 'No recent tracking update available'
+        }
+    return records or FALLBACK_ORDERS
+
+
+def load_mock_returns() -> Dict[str, Dict[str, Any]]:
+    records: Dict[str, Dict[str, Any]] = {}
+    for item in read_mock_file('returns-refunds.json'):
+        order_number = normalize_order_number(item.get('order_id') or item.get('orderNumber'))
+        if not order_number:
+            continue
+
+        records[order_number] = {
+            'eligible': bool(item.get('eligible')),
+            'returnWindowDays': item.get('return_window_days') or item.get('returnWindowDays') or 30,
+            'refundStatus': item.get('refund_status') or item.get('refundStatus') or 'Not available',
+            'refundEta': item.get('refund_eta') or item.get('refundEta') or 'N/A'
+        }
+    return records or FALLBACK_RETURNS
+
+
+MOCK_ORDERS = load_mock_orders()
+MOCK_RETURNS = load_mock_returns()
 
 
 def build_response(body_html: str, options: Optional[List[Dict[str, Any]]] = None,
@@ -164,6 +232,8 @@ def order_result(intent: str, order_number: str, record: Dict[str, Any]):
     else:
         body = f"I found information for order <b>{clean_number}</b>. Current status: {record['status']}."
     return build_response(body + '<br><br>Is there anything else I can help you with?', [
+        option('File Return/Refund', 'file_return_for_order', {'order_number': order_number}),
+        option('Check Refund Status', 'lookup_order', {'intent': 'refund_status', 'order_number': order_number}),
         option('Start Over', 'start'),
         option('Contact Support', 'contact_support')
     ])
@@ -193,6 +263,8 @@ def return_result(intent: str, order_number: str, record: Dict[str, Any]):
     else:
         body = f"I found return details for order <b>{clean_number}</b>."
     return build_response(body + '<br><br>Is there anything else I can help you with?', [
+        option('File Return/Refund', 'file_return_for_order', {'order_number': order_number}),
+        option('Check Order Status', 'check_order_status_for_order', {'order_number': order_number}),
         option('Start Over', 'start'),
         option('Contact Support', 'contact_support')
     ])
@@ -234,6 +306,52 @@ def return_not_found(intent: str, order_number: str):
         [
             option('Try again', 'ask_order_number', {'intent': intent}),
             option('Contact Support', 'contact_support')
+        ]
+    )
+
+
+def file_return_for_order_handler(order_number: str):
+    clean_number = html.escape(order_number)
+    record = get_return_detail(order_number)
+    if not record:
+        return return_not_found('eligibility', order_number)
+
+    if not record['eligible']:
+        return build_response(
+            f"Order <b>{clean_number}</b> is not eligible for a standard return/refund request right now.",
+            [
+                option('Check Order Status', 'check_order_status_for_order', {'order_number': order_number}),
+                option('Contact Support', 'contact_support'),
+                option('Start Over', 'start')
+            ]
+        )
+
+    return build_response(
+        (
+            f"Done — I've started the return/refund request for order <b>{clean_number}</b>. "
+            f"Current refund status: <b>{record['refundStatus']}</b>. "
+            f"Estimated time to reach you: {record['refundEta']}."
+        ),
+        [
+            option('Check Refund Status', 'lookup_order', {'intent': 'refund_status', 'order_number': order_number}),
+            option('Check Order Status', 'check_order_status_for_order', {'order_number': order_number}),
+            option('Contact Support', 'contact_support'),
+            option('Start Over', 'start')
+        ]
+    )
+
+
+def check_order_status_for_order_handler(order_number: str):
+    """Show order status options for a specific order"""
+    clean_number = html.escape(order_number)
+    return build_response(
+        f'<b>What would you like to know about {clean_number}?</b>',
+        [
+            option('Where is my order?', 'lookup_order', {'intent': 'track_order', 'order_number': order_number}),
+            option('Has my order shipped?', 'lookup_order', {'intent': 'shipped_check', 'order_number': order_number}),
+            option("My order hasn't arrived", 'lookup_order', {'intent': 'not_arrived', 'order_number': order_number}),
+            option('File Return/Refund', 'file_return_for_order', {'order_number': order_number}),
+            option('Start Over', 'start')
         ]
     )
 
@@ -340,6 +458,18 @@ def chat():
             'No problem — I\'ll route this to a member of our support team. They typically respond within our business hours (Mon–Fri 08:00–20:00, Sat–Sun 09:00–17:00).',
             contact_support_options()
         ))
+
+    if action == 'file_return_for_order':
+        valid, order_number = validate_order_number(payload.get('order_number'))
+        if not valid:
+            return jsonify(build_response('I need an order number to proceed.', fallback_options()))
+        return jsonify(file_return_for_order_handler(order_number))
+
+    if action == 'check_order_status_for_order':
+        valid, order_number = validate_order_number(payload.get('order_number'))
+        if not valid:
+            return jsonify(build_response('I need an order number to proceed.', fallback_options()))
+        return jsonify(check_order_status_for_order_handler(order_number))
 
     return jsonify(build_response(
         "I couldn't find an option that matches your issue.",

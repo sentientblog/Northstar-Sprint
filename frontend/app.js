@@ -135,6 +135,8 @@ document.addEventListener('DOMContentLoaded', () => {
             candidates.push(`${window.location.origin}/api/chat`);
         }
 
+        candidates.push('http://localhost:5001/api/chat');
+        candidates.push('http://127.0.0.1:5001/api/chat');
         candidates.push('http://localhost:5000/api/chat');
         candidates.push('http://127.0.0.1:5000/api/chat');
 
@@ -193,6 +195,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (chosen.action === 'returns_root') return goReturnsRoot();
         if (chosen.action === 'return_instructions') return goHowToReturn();
         if (chosen.action === 'ask_order_number') return goAskOrderNumber(chosen.payload?.intent || 'track_order');
+        if (chosen.action === 'lookup_order') return goLookupOrder(chosen.payload?.intent, chosen.payload?.order_number);
+        if (chosen.action === 'file_return_for_order') return goFileReturnForOrder(chosen.payload?.order_number);
+        if (chosen.action === 'check_order_status_for_order') return goCheckOrderStatusForOrder(chosen.payload?.order_number);
         if (chosen.action === 'fallback') return goFallback();
         if (chosen.action === 'contact_support') return goContactSupport();
         return goFallback();
@@ -216,6 +221,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function goAskOrderNumber(intent) {
         postChat('ask_order_number', { intent }).then(renderBotResponse);
+    }
+
+    function goLookupOrder(intent, orderNumber) {
+        if (orderNumber) {
+            // Order number already provided, skip asking and go directly to lookup
+            clearTextInputMode();
+            postChat('lookup_order', { intent, order_number: orderNumber }).then(renderBotResponse);
+        } else if (intent) {
+            // No order number, ask for it
+            goAskOrderNumber(intent);
+        } else {
+            goFallback();
+        }
+    }
+
+    function goFileReturnForOrder(orderNumber) {
+        if (!orderNumber) return goFallback();
+        postChat('file_return_for_order', { order_number: orderNumber }).then(renderBotResponse);
+    }
+
+    function goCheckOrderStatusForOrder(orderNumber) {
+        if (!orderNumber) return goFallback();
+        postChat('check_order_status_for_order', { order_number: orderNumber }).then(renderBotResponse);
     }
 
     async function handleOrderNumberSubmit(orderNumber) {
@@ -251,7 +279,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const FLOW_ENTRY_POINTS = {
         root: goRoot,
         orderStatusRoot: goOrderStatusRoot,
-        returnsRoot: goReturnsRoot
+        returnsRoot: goReturnsRoot,
+        contactSupport: goContactSupport
     };
 
     document.querySelectorAll('[data-flow]').forEach((el) => {

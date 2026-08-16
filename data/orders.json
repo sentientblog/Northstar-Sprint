@@ -1,5 +1,33 @@
 [
   {
+    "order_id": "NS1025",
+    "status": "Returned - In Transit",
+    "shipped": true,
+    "estimated_delivery": "2026-08-19",
+    "eta_days_from_today": 3,
+    "last_update": "Return package departed from drop-off hub",
+    "last_update_days_from_today": -2,
+    "notes": "Presentation test order: valid order number, returned in transit"
+  },
+  {
+    "order_id": "NS1099",
+    "status": "processing",
+    "shipped": false,
+    "estimated_delivery": "2026-08-17",
+    "eta_days_from_today": 1,
+    "last_update": "Order confirmed, awaiting warehouse pickup",
+    "notes": "Processing order used for not-yet-shipped tests"
+  },
+  {
+    "order_id": "NS1250",
+    "status": "delivered",
+    "shipped": true,
+    "estimated_delivery": "2026-08-08",
+    "eta_days_from_today": -8,
+    "last_update": "Package delivered to customer address",
+    "notes": "Delivered order used for completed delivery tests"
+  },
+  {
     "order_id": "NS1001",
     "status": "processing",
     "shipped": false,

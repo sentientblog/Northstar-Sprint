@@ -1,0 +1,26 @@
+[
+  {
+    "order_id": "NS1025",
+    "eligible": true,
+    "return_window_days": 30,
+    "refund_status": "Refund in transit",
+    "refund_eta": "3–5 business days",
+    "notes": "Presentation test order: valid for returns/refunds, with refund currently in transit"
+  },
+  {
+    "order_id": "NS1099",
+    "eligible": false,
+    "return_window_days": 30,
+    "refund_status": "Not applicable",
+    "refund_eta": "N/A",
+    "notes": "Order outside return window, ineligible for standard return"
+  },
+  {
+    "order_id": "NS1250",
+    "eligible": true,
+    "return_window_days": 30,
+    "refund_status": "Issued",
+    "refund_eta": "Refund received",
+    "notes": "Delivered order, eligible for return, refund already issued"
+  }
+]
